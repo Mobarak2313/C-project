@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 namespace MyApp
 {
     internal class Program
@@ -98,7 +99,7 @@ namespace MyApp
 
             while (boss.HP > 0 && player.HP > 0)
             {
-            Console.WriteLine("Choose action: 1. Attack 2. Check Stats 3. Check Inventory 4. Use Item 5. Sell Item\n");
+            Console.WriteLine("Choose action: 1. Attack 2. Check Stats 3. Check Inventory 4. Use Item 5. Sell Item 6. Buy Item\n");
             choice = Convert.ToInt32(Console.ReadLine());
 
             switch (choice)
@@ -131,6 +132,10 @@ namespace MyApp
                         int itemChoice = Convert.ToInt32(Console.ReadLine()) - 1;
                         player.Inventory.RemoveItem(itemChoice);
                         break;
+                    case 6:
+                    player.Inventory.BuyItem();
+                    break;
+
                     default:
                         Console.WriteLine("Invalid choice. Try again.");
                         break;
@@ -218,7 +223,7 @@ namespace MyApp
                 this.HP = HP;
                 Inventory = new Inventory();
             }
-
+            
             public abstract void LevelUp();
             public abstract void Attack(Enemy enemy);
             public abstract void ShowStats();
@@ -413,11 +418,21 @@ namespace MyApp
         {
             public int capacity = 5;
             public Items[] items;
+
+            public static int totalItemsCount = 0;
     
             public Inventory()
             {
                 items = new Items[capacity];
             }
+
+            // Overloaded constructor for custom capacity
+
+            public Inventory(int capacity){
+                this.capacity = capacity;
+                items = new Items[capacity];
+            }
+
     
             public void AddItem(Items item)
             {
@@ -426,19 +441,52 @@ namespace MyApp
                     if (items[i] == null)
                     {
                         items[i] = item;
+                        totalItemsCount++;
                         Console.WriteLine($"{item.name} added to inventory.");
                         return;
                     }
                 }
                 Console.WriteLine("Inventory is full. Cannot add new item.");
             }
-    
+
+            public void BuyItem(){
+                Console.WriteLine("Available Item in store to purchase");
+                Console.WriteLine("1. Health Potion: Restores Health 50");
+                Console.WriteLine("2. Energy Potion: Restores Energy 30");
+                Console.WriteLine("3. Attack Boost: Increases Attack Power Temporarily 10");
+
+                int bitem = Convert.ToInt32(Console.ReadLine());
+
+                switch (bitem)
+            {
+                case 1:
+                    Items healthPotion = new Items("Health Potion", "Restores Health", 50);
+                    AddItem(healthPotion);
+                    break;
+                case 2:
+                    Items energyPotion = new Items("Energy Potion", "Restores Energy", 30);
+                    AddItem(energyPotion);
+                    break;
+                case 3:
+                    Items attackBoost = new Items("Attack Boost", "Increases Attack Power Temporarily", 10);
+                    AddItem(attackBoost);
+                    break;   
+                default:
+                    Console.WriteLine("Invalid choice.");
+                    return;
+            }
+
+
+            }
+
             public void RemoveItem(int index)
             {
                 if (index >= 0 && index < capacity && items[index] != null)
                 {
                     Console.WriteLine($"{items[index].name} removed from inventory.");
                     items[index] = null;
+                    totalItemsCount--; // Decrement total items count
+            Console.WriteLine($"Total items: {totalItemsCount}");
                 }
                 else
                 {
@@ -448,7 +496,7 @@ namespace MyApp
     
             public void ShowInventory()
             {
-                Console.WriteLine("Inventory:");
+                Console.WriteLine($"Inventory available items: {totalItemsCount}");
                 for (int i = 0; i < capacity; i++)
                 {
                     if (items[i] != null)
