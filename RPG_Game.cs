@@ -1,408 +1,465 @@
 using System;
-using System.Collections.Generic;
-
-namespace TextBasedRPG
+namespace MyApp
 {
-    // Interface for objects that can take damage
-    interface IDamageable
-    {
-        void TakeDamage(int damage);
-    }
-
-    class Item
-    {
-        public string Name { get; }
-        public int EffectValue { get; }
-        public Action<Player> Effect { get; }
-
-        public Item(string name, int effectValue, Action<Player> effect)
-        {
-            Name = name;
-            EffectValue = effectValue;
-            Effect = effect;
-        }
-
-        // Copy constructor
-        public Item(Item other)
-        {
-            Name = other.Name;
-            EffectValue = other.EffectValue;
-            Effect = other.Effect;
-        }
-
-        public void Apply(Player player)
-        {
-            Effect(player);
-            Console.WriteLine($"{Name} applied!");
-        }
-    }
-
-    class Inventory
-    {
-        private readonly int capacity;
-        private readonly List<Item> items;
-
-        public Inventory(int capacity)
-        {
-            this.capacity = capacity;
-            items = new List<Item>();
-        }
-
-        public void AddItem(Item item)
-        {
-            if (items.Count < capacity)
-            {
-                items.Add(item);
-                Console.WriteLine($"{item.Name} added to inventory.");
-            }
-            else
-            {
-                Console.WriteLine("Inventory is full. Sell an item first!");
-            }
-        }
-
-        public void RemoveItem(Item item)
-        {
-            if (items.Remove(item))
-            {
-                Console.WriteLine($"{item.Name} removed from inventory.");
-            }
-            else
-            {
-                Console.WriteLine("Item not found in inventory.");
-            }
-        }
-
-        public void DisplayItems()
-        {
-            if (items.Count == 0)
-            {
-                Console.WriteLine("No items in inventory.");
-            }
-            else
-            {
-                Console.WriteLine("Inventory:");
-                for (int i = 0; i < items.Count; i++)
-                {
-                    Console.WriteLine($"{i + 1}. {items[i].Name}");
-                }
-            }
-        }
-
-        public bool IsFull => items.Count >= capacity;
-        public bool IsEmpty => items.Count == 0;
-        public List<Item> Items => items;
-    }
-
-    abstract class Player : IDamageable
-    {
-        public string Name { get; set; }
-        public int Health { get; set; }
-        public int Energy { get; set; }
-        public int XP { get; set; }
-        public string Rank { get; set; }
-        public Inventory Inventory { get; set; }
-
-        public Player(string name, int health, int energy)
-        {
-            Name = name;
-            Health = health;
-            Energy = energy;
-            XP = 0;
-            Rank = "Novice";
-            Inventory = new Inventory(2); // Limit inventory to 2 items
-        }
-
-        // Copy constructor
-        public Player(Player other)
-        {
-            Name = other.Name;
-            Health = other.Health;
-            Energy = other.Energy;
-            XP = other.XP;
-            Rank = other.Rank;
-            Inventory = new Inventory(2);  // Can be extended to clone inventory as well
-        }
-
-        public abstract void Attack(Enemy enemy);
-
-        public virtual void GainXP(int amount)
-        {
-            XP += amount;
-            if (XP >= 50) Rank = "Apprentice";
-        }
-
-        public void UseEnergy(int amount)
-        {
-            if (Energy >= amount)
-            {
-                Energy -= amount;
-            }
-            else
-            {
-                Console.WriteLine("No energy left to attack!");
-            }
-        }
-
-        public void ClampHealth()
-        {
-            if (Health < 0)
-            {
-                Health = 0;
-            }
-        }
-
-        // IDamageable Interface method implementation
-        public void TakeDamage(int damage)
-        {
-            Health -= damage;
-            if (Health < 0) Health = 0;
-        }
-
-        // Operator overloading for comparing player health
-        public static bool operator >(Player p1, Player p2)
-        {
-            return p1.Health > p2.Health;
-        }
-
-        public static bool operator <(Player p1, Player p2)
-        {
-            return p1.Health < p2.Health;
-        }
-    }
-
-    class Warrior : Player
-    {
-        public Warrior(string name) : base(name, 100, 50) { }
-
-        public Warrior(Warrior other) : base(other) { }
-
-        public override void Attack(Enemy enemy)
-        {
-            if (Energy >= 10)
-            {
-                Console.WriteLine($"{Name} slashes at the enemy!");
-                enemy.TakeDamage(20);
-                UseEnergy(10);
-            }
-            else
-            {
-                Console.WriteLine("Not enough energy to attack!");
-            }
-        }
-    }
-
-    class Mage : Player
-    {
-        public Mage(string name) : base(name, 200, 100) { }
-
-        public Mage(Mage other) : base(other) { }
-
-        public override void Attack(Enemy enemy)
-        {
-            if (Energy >= 15)
-            {
-                Console.WriteLine($"{Name} casts a spell on the enemy!");
-                enemy.TakeDamage(40);
-                UseEnergy(15);
-            }
-            else
-            {
-                Console.WriteLine("Not enough energy to attack!");
-            }
-        }
-    }
-
-    abstract class Enemy : IDamageable
-    {
-        public int Health { get; set; }
-        public bool IsAlive => Health > 0;
-
-        public Enemy(int health)
-        {
-            Health = health;
-        }
-
-        public void TakeDamage(int damage)
-        {
-            Health -= damage;
-            if (Health < 0) Health = 0;
-            Console.WriteLine($"Enemy takes {damage} damage. Remaining health: {Health}");
-        }
-    }
-
-    class Minion : Enemy
-    {
-        public Minion() : base(50) { }
-    }
-
-    class Boss : Enemy
-    {
-        public Boss() : base(120) { }
-    }
-
-    class NPC
-    {
-        public void OfferQuest()
-        {
-            Console.WriteLine("Defeat the minions to summon the boss!");
-        }
-    }
-
-    class Program
+    internal class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Choose your character: 1. Warrior 2. Mage");
-            int choice = int.Parse(Console.ReadLine());
-            Player player = choice switch
+            // Static method for displaying the welcome message
+            ShowWelcomeMessage();
+
+            // Player selection
+            Console.WriteLine("\nChoose your character:\n1. Warrior   2. Mage\n");
+            Player player = null;
+            int choice = Convert.ToInt32(Console.ReadLine());
+
+            switch (choice)
             {
-                1 => new Warrior("Warrior Hero"),
-                2 => new Mage("Mage Hero"),
-                _ => throw new InvalidOperationException("Invalid choice!")
-            };
+                case 1:
+                    player = new Warrior("Sally the warrior");
+                    break;
+                case 2:
+                    player = new Mage("Neo the Mage");
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Exiting game.");
+                    return;
+            }
 
-            NPC npc = new NPC();
-            npc.OfferQuest();
+            // Game introduction
+            Console.WriteLine($"You selected {player.name}. Let the adventure begin!");
+            player.ShowStats();
 
-            Item hpBooster = new Item("HP Booster", 20, p => p.Health += 20);
-            Item attackBooster = new Item("Attack Booster", 10, p => p.Energy += 10);
-            Item energyBooster = new Item("Energy Booster", 15, p => p.Energy += 15);
+            // Add items to inventory
+            Items healthPotion = new Items("Health Potion", "Restores Health", 50);
+            Items energyPotion = new Items("Energy Potion", "Restores Energy", 30);
+            Items attackBoost = new Items("Attack Boost", "Increases Attack Power Temporarily", 10);
+            
+            Console.WriteLine("A villager gifted you an item for saving him from bandits");
+            player.Inventory.AddItem(healthPotion);
 
-            Minion minion = new Minion();
-            while (minion.IsAlive)
+            
+            // Side quest
+            NPC npc = new NPC("Defeat 3 minions to save the village ", 50);
+            npc.OfferQuest(player);
+
+            // First minion encounter
+            Minions m1 = new Minions("Goblin", 20);
+            Console.WriteLine("\n\nA Goblin appears! Do you want to attack?\n1. Yes 2. No\n");
+            choice = Convert.ToInt32(Console.ReadLine());
+
+            switch (choice)
             {
-                Console.WriteLine("1. Attack 2. Inventory");
-                int action = int.Parse(Console.ReadLine());
+                case 1:
+                    player.Attack(m1);
+                    break;
+                case 2:
+                    Console.WriteLine("You let the Goblin go.");
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Goblin flees.");
+                    break;
+            }
 
-                if (action == 1)
+            // Offer to fight another Goblin or proceed to Boss
+            Console.WriteLine("\nDo you want to: \n1. Fight more Goblins for some hidden rewards    2. Proceed to the Boss\n");
+            choice = Convert.ToInt32(Console.ReadLine());
+
+            switch (choice)
+            {
+                case 1:
+                    Console.WriteLine("You decided to fight more minions.");
+                    Minions m2 = new Minions("Goblin", 20);
+                    Console.WriteLine("Another Goblin appears!");
+                    player.Attack(m2);
+                    Console.WriteLine("\nOne more Orc appears!");
+                    Minions m3 = new Minions("Orc", 30);
+                    player.Attack(m3); // After defeating 3, level up occurs
+                    break;
+                case 2:
+                    Console.WriteLine("You decided to proceed to the Boss.");
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Proceeding to the Boss by default.");
+                    break;
+            }
+            if (choice==1){
+                Console.WriteLine("You got some rewards");
+                // Adding items to the player's inventory
+                
+                player.Inventory.AddItem(energyPotion);
+                player.Inventory.AddItem(attackBoost);
+
+            }
+
+            // Boss fight
+            Boss boss = new Boss("Demon King", 200);
+            Console.WriteLine($"The final boss {boss.name} appears !");
+
+            while (boss.HP > 0 && player.HP > 0)
+            {
+            Console.WriteLine("Choose action: 1. Attack 2. Check Stats 3. Check Inventory 4. Use Item 5. Sell Item\n");
+            choice = Convert.ToInt32(Console.ReadLine());
+
+            switch (choice)
                 {
-                    player.Attack(minion);
-                    if (minion.IsAlive)
-                    {
-                        Console.WriteLine("Minion attacks back!");
-                        player.Health -= 10;
-                        player.ClampHealth();  // Clamp health to 0 if it goes below 0
-                        Console.WriteLine($"{player.Name} health: {player.Health}, Energy: {player.Energy}, XP: {player.XP}");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Minion defeated!");
-                        player.GainXP(50);
-                        Console.WriteLine($"Rank updated to {player.Rank}");
-                    }
+                    case 1:
+                        if (player.energy > 0)
+                        {
+                            player.Attack(boss);
+                            //boss.TakeDamage(30);
+                            player.TakeDamage(15);
+                            player.energy -= 10;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Not enough energy to attack!");
+                        }
+                        break;
+                    case 2:
+                        player.ShowStats();
+                        break;
+                    case 3:
+                        player.Inventory.ShowInventory();
+                        break;
+                    case 4:
+                        UseItem(player);
+                        break;
+                    case 5:
+                        player.Inventory.ShowInventory();
+                        Console.WriteLine("Enter number which you want to sell");
+                        int itemChoice = Convert.ToInt32(Console.ReadLine()) - 1;
+                        player.Inventory.RemoveItem(itemChoice);
+                        break;
+                    default:
+                        Console.WriteLine("Invalid choice. Try again.");
+                        break;
                 }
-                else if (action == 2)
-                {
-                    InventoryMenu(player, hpBooster, attackBooster, energyBooster);
+        }
+
+            if (player.HP <= 0)
+            {
+                Console.WriteLine("\n\nYou have been defeated! Game Over.");
+            }
+            else
+            {
+                Console.WriteLine("\n\nCongratulations, you defeated the Boss!And saved the world");
+            }
+        }
+
+        // Static method to display the welcome message
+        static void ShowWelcomeMessage()
+        {
+            Console.WriteLine("\n\nWelcome to the RPG Game!");
+        }
+        static void UseItem(Player player)
+        {
+            Console.WriteLine("Enter the number of the item to use:");
+            player.Inventory.ShowInventory();
+
+            int itemChoice = Convert.ToInt32(Console.ReadLine()) - 1;
+            if (itemChoice >= 0 && itemChoice < player.Inventory.capacity && player.Inventory.items[itemChoice] != null)
+            {
+                Items selectedItem = player.Inventory.items[itemChoice];
+                selectedItem.UseItem();
+                ApplyItemEffect(player, selectedItem);
+                player.Inventory.RemoveItem(itemChoice);
+            }
+            else
+            {
+                Console.WriteLine("Invalid item choice.");
+            }
+        }
+    
+        static void ApplyItemEffect(Player player, Items item)
+        {
+        switch (item.effect)
+        {
+            case "Restores Health":
+                player.HP += item.effectValue;
+                Console.WriteLine($"{player.name} restored {item.effectValue} HP! Current HP: {player.HP}");
+                break;
+            case "Restores Energy":
+                player.energy += item.effectValue;
+                Console.WriteLine($"{player.name} restored {item.effectValue} energy! Current Energy: {player.energy}");
+                break;
+            case "Increases Attack Power Temporarily":
+                Console.WriteLine($"{player.name}'s attack power increased by {item.effectValue} temporarily!");
+                // You can modify player.attack temporarily if such a field exists.
+                break;
+            default:
+                Console.WriteLine("Unknown item effect.");
+                break;
+        }
+        }
+
+
+
+        interface isDamagable
+        {
+            void TakeDamage(int damage);
+        }
+
+        abstract class Player : isDamagable
+        {
+            public string name;
+            public int level;
+            public int Exp;
+            public int HP;
+            public int energy = 100;
+            public Inventory Inventory;
+            private int minionsDefeated = 0; // Tracks defeated minions
+
+            public Player(string name, int level, int Exp, int HP)
+            {
+                this.name = name;
+                this.level = level;
+                this.Exp = Exp;
+                this.HP = HP;
+                Inventory = new Inventory();
+            }
+
+            public abstract void LevelUp();
+            public abstract void Attack(Enemy enemy);
+            public abstract void ShowStats();
+
+            public void TakeDamage(int damage)
+            {
+                HP -= damage;
+                Console.WriteLine($"{name} took {damage} damage. HP left: {HP}");
+                if (HP < 0) {
+                    HP=0;
+                }
+                if (HP == 0){ 
+                    Die();
                 }
             }
 
-            Boss boss = new Boss();
-            Console.WriteLine("The Boss has appeared!");
-
-            while (boss.IsAlive && player.Health > 0)
+            public void Die()
             {
-                Console.WriteLine("1. Attack 2. Inventory");
-                int action = int.Parse(Console.ReadLine());
+                Console.WriteLine($"{name} has died.");
+            }
 
-                if (action == 1)
+            // Track defeated minions and evolve accordingly
+            public void DefeatMinion()
+            {
+                minionsDefeated++;
+                Exp += 34; // Reward for defeating a minion
+                Console.WriteLine($"\n{name} defeated a minion! Total minions defeated: {minionsDefeated}");
+
+                if (minionsDefeated == 3)
                 {
-                    player.Attack(boss);
-                    if (boss.IsAlive)
+                    LevelUp();
+                    minionsDefeated = 0; // Reset count after level-up
+                }
+            }
+        }
+
+        class Warrior : Player
+        {
+            public Warrior(string name) : base(name, 1, 0, 110)
+            {
+            }
+
+            public override void Attack(Enemy enemy)
+            {
+                int damage = 30;
+                Console.WriteLine($"{name} attacks {enemy.name} for {damage} damage!");
+                enemy.TakeDamage(damage);
+
+                if (enemy.HP <= 0)
+                {
+                    if (enemy is Minions)
                     {
-                        Console.WriteLine("Boss attacks back!");
-                        player.Health -= 30;
-                        player.ClampHealth();  // Clamp health to 0 if it goes below 0
-                        Console.WriteLine($"{player.Name} health: {player.Health}, Energy: {player.Energy}, XP: {player.XP}");
+                        DefeatMinion(); // Track minion defeat
                     }
-                    else
+                }
+            }
+
+            public override void LevelUp()
+            {
+                level++;
+                HP += 20;
+                Console.WriteLine($"{name} leveled up to {level}! HP increased to {HP}.And gained some items");
+                
+            }
+
+            public override void ShowStats()
+            {
+                Console.WriteLine($"\n\n{name} is a level {level} Warrior with {Exp} XP and {HP} HP.\n\n");
+            }
+        }
+
+        class Mage : Player
+        {
+            public Mage(string name) : base(name, 1, 0, 90)
+            {
+            }
+
+            public override void Attack(Enemy enemy)
+            {
+                int damage = 25;
+                Console.WriteLine($"{name} casts a spell on {enemy.name} for {damage} damage!");
+                enemy.TakeDamage(damage);
+
+                if (enemy.HP <= 0)
+                {
+                    if (enemy is Minions)
                     {
-                        Console.WriteLine("Boss defeated! You win!");
+                        DefeatMinion(); // Track minion defeat
+                    }
+                }
+            }
+
+            public override void LevelUp()
+            {
+                level++;
+                HP += 15;
+                Console.WriteLine($"{name} leveled up to {level}! HP increased to {HP}.");
+            }
+
+            public override void ShowStats()
+            {
+                Console.WriteLine($"{name} is a level {level} Mage with {Exp} XP and {HP} HP.\n\n");
+            }
+        }
+
+        class NPC
+        {
+            public string Quest;
+            public int Reward;
+
+            public NPC(string quest, int reward)
+            {
+                Quest = quest;
+                Reward = reward;
+            }
+
+            public void OfferQuest(Player player)
+            {
+                Console.WriteLine($"\n\nNPC: {Quest}. Reward: {Reward} XP.");
+                Console.WriteLine($"{player.name} accepted the quest and earned {Reward} XP!");
+                player.Exp += Reward;
+            }
+        }
+
+        abstract class Enemy : isDamagable
+        {
+            public string name;
+            public int HP;
+
+            public Enemy(string name, int HP)
+            {
+                this.name = name;
+                this.HP = HP;
+            }
+
+            public void Die()
+            {
+                Console.WriteLine($"{name} has died.");
+            }
+
+            public virtual void TakeDamage(int damage)
+            {
+                 HP -= damage;
+                Console.WriteLine($"{name} took {damage} damage. HP left: {HP}");
+                if (HP < 0) {
+                    HP=0;
+                }
+                if (HP == 0){ 
+                    Die();
+                }
+            }
+        }
+
+        class Boss : Enemy
+        {
+            public Boss(string name, int hp) : base(name, hp)
+            {
+            }
+
+        public void TakeDamage(int damage, string v)
+            {
+                HP -= damage;
+                Console.WriteLine($"{name} took {damage} {v} damage! Remaining HP: {HP}");
+            }
+        }
+
+        class Minions : Enemy
+        {
+            public Minions(string name, int HP) : base(name, HP){}
+        }
+
+        class Items
+        {
+            public string name;
+            public string effect;
+            public int effectValue;
+
+            public Items(string name, string effect, int effectValue)
+            {
+                this.name = name;
+                this.effect = effect;
+                this.effectValue = effectValue;
+            }
+
+            public void UseItem()
+            {
+                Console.WriteLine($"Using {name} with effect {effect} for {effectValue} value");
+            }
+        }
+
+        class Inventory
+        {
+            public int capacity = 5;
+            public Items[] items;
+    
+            public Inventory()
+            {
+                items = new Items[capacity];
+            }
+    
+            public void AddItem(Items item)
+            {
+                for (int i = 0; i < capacity; i++)
+                {
+                    if (items[i] == null)
+                    {
+                        items[i] = item;
+                        Console.WriteLine($"{item.name} added to inventory.");
                         return;
                     }
                 }
-                else if (action == 2)
+                Console.WriteLine("Inventory is full. Cannot add new item.");
+            }
+    
+            public void RemoveItem(int index)
+            {
+                if (index >= 0 && index < capacity && items[index] != null)
                 {
-                    InventoryMenu(player, hpBooster, attackBooster, energyBooster);
+                    Console.WriteLine($"{items[index].name} removed from inventory.");
+                    items[index] = null;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid index or item does not exist.");
                 }
             }
-
-            if (player.Health <= 0)
+    
+            public void ShowInventory()
             {
-                Console.WriteLine("You have been defeated. Game over!");
-            }
-        }
-
-        static void InventoryMenu(Player player, Item hpBooster, Item attackBooster, Item energyBooster)
-        {
-            if (player.Inventory.IsEmpty)
-            {
-                Console.WriteLine("No items in inventory.");
-                Console.WriteLine("1. Buy");
-                int action = int.Parse(Console.ReadLine());
-                if (action == 1) BuyItem(player, hpBooster, attackBooster, energyBooster);
-            }
-            else
-            {
-                Console.WriteLine("1. Buy 2. Sell");
-                int action = int.Parse(Console.ReadLine());
-                if (action == 1) BuyItem(player, hpBooster, attackBooster, energyBooster);
-                else if (action == 2) SellItem(player);
-            }
-        }
-
-        static void BuyItem(Player player, Item hpBooster, Item attackBooster, Item energyBooster)
-        {
-            if (player.Inventory.IsFull)
-            {
-                Console.WriteLine("Inventory is full. Sell an item first!");
-                return;
-            }
-
-            Console.WriteLine("Available items to buy:");
-            Console.WriteLine("1. HP Booster");
-            Console.WriteLine("2. Attack Booster");
-            Console.WriteLine("3. Energy Booster");
-            int choice = int.Parse(Console.ReadLine());
-
-            Item selectedItem = choice switch
-            {
-                1 => hpBooster,
-                2 => attackBooster,
-                3 => energyBooster,
-                _ => null
-            };
-
-            if (selectedItem != null)
-            {
-                player.Inventory.AddItem(selectedItem);
-            }
-            else
-            {
-                Console.WriteLine("Invalid choice.");
-            }
-        }
-
-        static void SellItem(Player player)
-        {
-            if (player.Inventory.IsEmpty)
-            {
-                Console.WriteLine("No items to sell.");
-                return;
-            }
-
-            player.Inventory.DisplayItems();
-            Console.WriteLine("Select an item to sell:");
-            int choice = int.Parse(Console.ReadLine());
-
-            if (choice > 0 && choice <= player.Inventory.Items.Count)
-            {
-                player.Inventory.RemoveItem(player.Inventory.Items[choice - 1]);
-            }
-            else
-            {
-                Console.WriteLine("Invalid choice.");
+                Console.WriteLine("Inventory:");
+                for (int i = 0; i < capacity; i++)
+                {
+                    if (items[i] != null)
+                    {
+                        Console.WriteLine($"{i + 1}. {items[i].name} - {items[i].effect} ({items[i].effectValue})");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"{i + 1}. Empty Slot");
+                    }
+                }
             }
         }
     }
